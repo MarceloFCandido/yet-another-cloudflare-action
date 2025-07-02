@@ -1,0 +1,31 @@
+description: Create/update Cloudflare domains
+inputs:
+  domain:
+    description: Domain name to be created/updated
+    required: true
+  proxy:
+    default: false
+    description: Whether to enable Cloudflare proxy for the domain name
+    required: false
+  target:
+    description: Target/IP address the domain name should point to
+    required: true
+  ttl:
+    default: '5'
+    description: Time to live for the domain name
+    required: false
+  type:
+    default: A
+    description: Type of the domain name to be created/updated
+    required: true
+name: Yet Another Cloudflare Action
+outputs: {}
+runs:
+  args:
+    - ${{ inputs.domain }}
+    - ${{ inputs.target }}
+    - ${{ inputs.type }} 
+    - ${{ inputs.proxy }}
+    - ${{ inputs.ttl }}
+  image: Dockerfile
+  using: docker
