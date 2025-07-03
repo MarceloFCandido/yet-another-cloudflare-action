@@ -18,6 +18,9 @@ inputs:
     default: A
     description: Type of the domain name to be created/updated
     required: true
+  zone-name:
+    description: Zone name of the domain name
+    required: true
 name: Yet Another Cloudflare Action
 outputs: {}
 runs:
