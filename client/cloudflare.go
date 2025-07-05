@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/cloudflare/cloudflare-go/v3"
+	"github.com/cloudflare/cloudflare-go/v3/dns"
 	"github.com/cloudflare/cloudflare-go/v3/option"
 	"github.com/cloudflare/cloudflare-go/v3/zones"
 )
@@ -32,6 +33,8 @@ func GetSingletonClient() (*cloudflare.Client) {
 }
 
 func GetZoneIDByName(zoneName string) (string, error) {
+	fmt.Printf("Retrieving zone ID for zone name: %s\n", zoneName)
+
 	client := GetSingletonClient()
 
 	page, err := client.Zones.List(context.TODO(), zones.ZoneListParams{
@@ -47,3 +50,26 @@ func GetZoneIDByName(zoneName string) (string, error) {
 
 	return page.Result[0].ID, nil
 }
+
+func DoesRecordExistOnZone(zoneID, recordName string) (bool, error) {
+	fmt.Printf("Checking if record '%s' exists on zone '%s'\n", recordName, zoneID)
+
+	client := GetSingletonClient()
+
+	page, err := client.DNS.Records.List(context.TODO(), dns.RecordListParams{
+		ZoneID: cloudflare.F(zoneID),
+		Name: cloudflare.F(recordName),
+	})
+	if err != nil {
+		return false, fmt.Errorf("failed to list DNS records: %w", err)
+	}
+
+	for _, record := range page.Result {
+		if record.Name == recordName {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
