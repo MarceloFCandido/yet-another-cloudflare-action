@@ -5,17 +5,18 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"yaca/models"
 
-	"github.com/cloudflare/cloudflare-go/v3"
-	"github.com/cloudflare/cloudflare-go/v3/dns"
-	"github.com/cloudflare/cloudflare-go/v3/option"
-	"github.com/cloudflare/cloudflare-go/v3/zones"
+	"github.com/cloudflare/cloudflare-go/v4"
+	"github.com/cloudflare/cloudflare-go/v4/dns"
+	"github.com/cloudflare/cloudflare-go/v4/option"
+	"github.com/cloudflare/cloudflare-go/v4/zones"
 )
 
 var once sync.Once
 var client *cloudflare.Client
 
-func GetSingletonClient() (*cloudflare.Client) {
+func GetSingletonClient() *cloudflare.Client {
 	if client == nil {
 		once.Do(func() {
 			fmt.Println("Initializing singleton Cloudflare client...")
@@ -58,7 +59,6 @@ func DoesRecordExistOnZone(zoneID, recordName string) (bool, error) {
 
 	page, err := client.DNS.Records.List(context.TODO(), dns.RecordListParams{
 		ZoneID: cloudflare.F(zoneID),
-		Name: cloudflare.F(recordName),
 	})
 	if err != nil {
 		return false, fmt.Errorf("failed to list DNS records: %w", err)
@@ -73,3 +73,41 @@ func DoesRecordExistOnZone(zoneID, recordName string) (bool, error) {
 	return false, nil
 }
 
+func CreateRecordOnZone(zoneID string, record models.Record) (bool, error) {
+	fmt.Printf("Creating record '%s' on zone '%s' of type %s\n", record.Record, zoneID, record.Type)
+
+	client := GetSingletonClient()
+
+	var body dns.RecordNewParamsBody
+
+	switch record.Type {
+	case "A":
+		body = dns.RecordNewParamsBody{
+			Name:    cloudflare.F(record.Record),
+			Content: cloudflare.F(record.Target),
+			Proxied: cloudflare.F(record.Proxy),
+			TTL:     cloudflare.F(dns.TTL(record.Ttl)),
+			Type:    cloudflare.F(dns.RecordNewParamsBodyTypeA),
+		}
+	case "CNAME":
+		body = dns.RecordNewParamsBody{
+			Name:    cloudflare.F(record.Record),
+			Content: cloudflare.F(record.Target),
+			Proxied: cloudflare.F(record.Proxy),
+			TTL:     cloudflare.F(dns.TTL(record.Ttl)),
+			Type:    cloudflare.F(dns.RecordNewParamsBodyTypeCNAME),
+		}
+	default:
+		return false, fmt.Errorf("unsupported record type: %s", record.Type)
+	}
+
+	_, err := client.DNS.Records.New(context.TODO(), dns.RecordNewParams{
+		ZoneID: cloudflare.F(zoneID),
+		Body:   body,
+	})
+	if err != nil {
+		return false, fmt.Errorf("failed to create DNS record: %w", err)
+	}
+
+	return true, nil
+}
