@@ -74,64 +74,65 @@ func DoesRecordExistOnZone(zoneID, recordName string) (string, error) {
 }
 
 func CreateRecordOnZone(zoneID string, record models.Record) (bool, error) {
-	fmt.Printf("Creating record '%s' on zone '%s' of type %s\n", record.Record, zoneID, record.Type)
-
-	client := GetSingletonClient()
-
-	body := dns.RecordNewParamsBody{
-		Name:    cloudflare.F(record.Record),
-		Content: cloudflare.F(record.Target),
-		Proxied: cloudflare.F(record.Proxy),
-		TTL:     cloudflare.F(dns.TTL(record.Ttl)),
-	}
-
-	switch record.Type {
-	case "A":
-		body.Type = cloudflare.F(dns.RecordNewParamsBodyTypeA)
-	case "CNAME":
-		body.Type = cloudflare.F(dns.RecordNewParamsBodyTypeCNAME)
-	default:
-		return false, fmt.Errorf("unsupported record type: %s", record.Type)
-	}
-
-	_, err := client.DNS.Records.New(context.TODO(), dns.RecordNewParams{
-		ZoneID: cloudflare.F(zoneID),
-		Body:   body,
-	})
-	if err != nil {
-		return false, fmt.Errorf("failed to create DNS record: %w", err)
-	}
-
-	return true, nil
+	return upsertRecord(context.TODO(), zoneID, "", record, true)
 }
 
 func UpdateRecordOnZone(zoneID, recordID string, record models.Record) (bool, error) {
-	fmt.Printf("Creating record '%s' on zone '%s' of type %s\n", record.Record, zoneID, record.Type)
+	return upsertRecord(context.TODO(), zoneID, recordID, record, false)
+}
+
+func upsertRecord(ctx context.Context, zoneID, recordID string, record models.Record, create bool) (bool, error) {
+	operation := "Updating"
+	if create {
+		operation = "Creating"
+	}
+	fmt.Printf("%s record '%s' on zone '%s' of type %s\n", operation, record.Record, zoneID, record.Type)
 
 	client := GetSingletonClient()
 
-	body := dns.RecordEditParamsBody{
-		Name:    cloudflare.F(record.Record),
-		Content: cloudflare.F(record.Target),
-		Proxied: cloudflare.F(record.Proxy),
-		TTL:     cloudflare.F(dns.TTL(record.Ttl)),
+	var err error
+	if create {
+		body := dns.RecordNewParamsBody{
+			Name:    cloudflare.F(record.Record),
+			Content: cloudflare.F(record.Target),
+			Proxied: cloudflare.F(record.Proxy),
+			TTL:     cloudflare.F(dns.TTL(record.Ttl)),
+		}
+		switch record.Type {
+		case "A":
+			body.Type = cloudflare.F(dns.RecordNewParamsBodyTypeA)
+		case "CNAME":
+			body.Type = cloudflare.F(dns.RecordNewParamsBodyTypeCNAME)
+		default:
+			return false, fmt.Errorf("unsupported record type: %s", record.Type)
+		}
+		_, err = client.DNS.Records.New(ctx, dns.RecordNewParams{
+			ZoneID: cloudflare.F(zoneID),
+			Body:   body,
+		})
+	} else {
+		body := dns.RecordEditParamsBody{
+			Name:    cloudflare.F(record.Record),
+			Content: cloudflare.F(record.Target),
+			Proxied: cloudflare.F(record.Proxy),
+			TTL:     cloudflare.F(dns.TTL(record.Ttl)),
+		}
+		switch record.Type {
+		case "A":
+			body.Type = cloudflare.F(dns.RecordEditParamsBodyTypeA)
+		case "CNAME":
+			body.Type = cloudflare.F(dns.RecordEditParamsBodyTypeCNAME)
+		default:
+			return false, fmt.Errorf("unsupported record type: %s", record.Type)
+		}
+		_, err = client.DNS.Records.Edit(ctx, recordID, dns.RecordEditParams{
+			ZoneID: cloudflare.F(zoneID),
+			Body:   body,
+		})
 	}
 
-	switch record.Type {
-	case "A":
-		body.Type = cloudflare.F(dns.RecordEditParamsBodyTypeA)
-	case "CNAME":
-		body.Type = cloudflare.F(dns.RecordEditParamsBodyTypeCNAME)
-	default:
-		return false, fmt.Errorf("unsupported record type: %s", record.Type)
-	}
-
-	_, err := client.DNS.Records.Edit(context.TODO(), recordID, dns.RecordEditParams{
-		ZoneID: cloudflare.F(zoneID),
-		Body:   body,
-	})
 	if err != nil {
-		return false, fmt.Errorf("failed to update DNS record: %w", err)
+		return false, fmt.Errorf("failed to %s DNS record: %w", map[bool]string{true: "create", false: "update"}[create], err)
 	}
 
 	return true, nil
