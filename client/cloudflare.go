@@ -1,12 +1,14 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
 
 	"github.com/cloudflare/cloudflare-go/v3"
 	"github.com/cloudflare/cloudflare-go/v3/option"
+	"github.com/cloudflare/cloudflare-go/v3/zones"
 )
 
 var once sync.Once
@@ -27,4 +29,21 @@ func GetSingletonClient() (*cloudflare.Client) {
 	}
 
 	return client
+}
+
+func GetZoneIDByName(zoneName string) (string, error) {
+	client := GetSingletonClient()
+
+	page, err := client.Zones.List(context.TODO(), zones.ZoneListParams{
+		Name: cloudflare.F(zoneName),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to list zones: %w", err)
+	}
+
+	if len(page.Result) == 0 {
+		return "", fmt.Errorf("no zone found with name: %s", zoneName)
+	}
+
+	return page.Result[0].ID, nil
 }

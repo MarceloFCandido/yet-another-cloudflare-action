@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"yaca/client"
 	"yaca/pkg/utils"
 )
@@ -10,20 +11,13 @@ func main() {
 
   args := utils.ParseArgs()
 
-  client := client.GetSingletonClient()
+  zoneID, err := client.GetZoneIDByName(args.ZoneName)
+  if err != nil {
+    panic(err)
+  }
 
-  // zoneID, err = client.GetZoneIDByName(args.ZoneName)
+	fmt.Printf("Zone ID: %+v\n", zoneID)
 
-  // page, err := client.Zones.List(context.TODO(), zones.ZoneListParams{
-  //   Name: cloudflare.F(args.ZoneName),
-  // })
-	// if err != nil {
-	// 	panic(err.Error())
-	// }
-
-	// fmt.Printf("%+v\n", page.Result[0].ID)
-
-  // GetZoneID()
   // DoesDomainExistOnZone()
   // if true
   // UpdateDomain()
