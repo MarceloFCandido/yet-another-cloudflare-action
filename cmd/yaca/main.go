@@ -17,13 +17,14 @@ func main() {
 
 	fmt.Printf("Zone ID: %+v\n", zoneID)
 
-	recordExists, err := client.DoesRecordExistOnZone(zoneID, args.Record)
+	recordID, err := client.DoesRecordExistOnZone(zoneID, args.Record)
 	utils.PanicOnError(err)
 
-	if recordExists {
+	if recordID != "" {
 		fmt.Printf("Record %s already exists on zone %s.\n", args.Record, args.ZoneName)
 	} else {
 		fmt.Printf("Record %s does not exist on zone %s.\n", args.Record, args.ZoneName)
+
 		success, err := client.CreateRecordOnZone(zoneID, models.Record{
 			Record: args.Record,
 			Proxy:  args.Proxy,
@@ -31,7 +32,6 @@ func main() {
 			Ttl:    args.Ttl,
 			Type:   args.Type,
 		})
-
     utils.PanicOnError(err)
 
     if success {

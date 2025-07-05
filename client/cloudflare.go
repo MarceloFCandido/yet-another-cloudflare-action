@@ -52,7 +52,7 @@ func GetZoneIDByName(zoneName string) (string, error) {
 	return page.Result[0].ID, nil
 }
 
-func DoesRecordExistOnZone(zoneID, recordName string) (bool, error) {
+func DoesRecordExistOnZone(zoneID, recordName string) (string, error) {
 	fmt.Printf("Checking if record '%s' exists on zone '%s'\n", recordName, zoneID)
 
 	client := GetSingletonClient()
@@ -61,16 +61,16 @@ func DoesRecordExistOnZone(zoneID, recordName string) (bool, error) {
 		ZoneID: cloudflare.F(zoneID),
 	})
 	if err != nil {
-		return false, fmt.Errorf("failed to list DNS records: %w", err)
+		return "", fmt.Errorf("failed to list DNS records: %w", err)
 	}
 
 	for _, record := range page.Result {
 		if record.Name == recordName {
-			return true, nil
+			return record.ID, nil
 		}
 	}
 
-	return false, nil
+	return "", nil
 }
 
 func CreateRecordOnZone(zoneID string, record models.Record) (bool, error) {
