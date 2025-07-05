@@ -20,18 +20,27 @@ func main() {
 	recordID, err := client.DoesRecordExistOnZone(zoneID, args.Record)
 	utils.PanicOnError(err)
 
+  record := models.Record{
+    Record: args.Record,
+    Proxy:  args.Proxy,
+    Target: args.Target,
+    Ttl:    args.Ttl,
+    Type:   args.Type,
+  }
+
 	if recordID != "" {
 		fmt.Printf("Record %s already exists on zone %s.\n", args.Record, args.ZoneName)
+
+    success, err := client.UpdateRecordOnZone(zoneID, recordID, record)
+    utils.PanicOnError(err)
+
+    if success {
+      fmt.Printf("Record %s updated successfully on zone %s.\n", args.Record, args.ZoneName)
+    }
 	} else {
 		fmt.Printf("Record %s does not exist on zone %s.\n", args.Record, args.ZoneName)
 
-		success, err := client.CreateRecordOnZone(zoneID, models.Record{
-			Record: args.Record,
-			Proxy:  args.Proxy,
-			Target: args.Target,
-			Ttl:    args.Ttl,
-			Type:   args.Type,
-		})
+		success, err := client.CreateRecordOnZone(zoneID, record)
     utils.PanicOnError(err)
 
     if success {
