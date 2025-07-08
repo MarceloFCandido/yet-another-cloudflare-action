@@ -11,6 +11,8 @@ func main() {
 	utils.LoadEnv()
 
 	args := utils.ParseArgs()
+  err := utils.ValidateArgs(&args)
+  utils.PanicOnError(err)
 
 	zoneID, err := client.GetZoneIDByName(args.ZoneName)
 	utils.PanicOnError(err)
@@ -29,7 +31,7 @@ func main() {
   }
 
 	if recordID != "" {
-		fmt.Printf("Record %s already exists on zone %s.\n", args.Record, args.ZoneName)
+		fmt.Printf("Record %s exists on zone %s.\n", args.Record, args.ZoneName)
 
     success, err := client.UpdateRecordOnZone(zoneID, recordID, record)
     utils.PanicOnError(err)

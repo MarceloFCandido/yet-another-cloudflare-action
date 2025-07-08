@@ -1,23 +1,26 @@
 description: Create/update Cloudflare domains
 inputs:
-  record:
-    description: Record name to be created/updated
-    required: true
+  delete:
+    default: "false"
+    description: Whether to delete the record name
+    required: false
   proxy:
     default: "false"
     description: Whether to enable Cloudflare proxy for the record name
     required: false
+  record:
+    description: Record name to be created/updated
+    required: true
   target:
     description: Target/IP address the record name should point to
-    required: true
+    required: false
   ttl:
-    default: '5'
+    default: "3600"
     description: Time-to-live for the record name
     required: false
   type:
-    default: A
     description: Type of the record name to be created/updated
-    required: true
+    required: false
   zone-name:
     description: Zone name of the record name
     required: true
@@ -25,9 +28,11 @@ name: Yet Another Cloudflare Action
 outputs: {}
 runs:
   args:
-    - ${{ inputs.domain }}
+    - ${{ inputs.record }}
+    - ${{ inputs.zone-name }}
+    - ${{ inputs.delete }}
     - ${{ inputs.target }}
-    - ${{ inputs.type }} 
+    - ${{ inputs.type }}
     - ${{ inputs.proxy }}
     - ${{ inputs.ttl }}
   image: Dockerfile
