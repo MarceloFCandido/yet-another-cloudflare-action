@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+
 	"yaca/client"
 	"yaca/models"
 	"yaca/pkg/utils"
@@ -34,11 +35,21 @@ func main() {
 	if recordID != "" {
 		fmt.Printf("Record %s exists on zone %s.\n", args.Record, args.ZoneName)
 
-    success, err := client.UpdateRecordOnZone(zoneID, recordID, record)
+    if !args.Delete {
+      success, err := client.UpdateRecordOnZone(zoneID, recordID, record)
+      utils.PanicOnError(err)
+
+      if success {
+        fmt.Printf("Record %s updated successfully on zone %s.\n", args.Record, args.ZoneName)
+        os.Exit(0)
+      }
+    }
+
+    success, err := client.DeleteRecordOnZone(zoneID, recordID, record)
     utils.PanicOnError(err)
 
     if success {
-      fmt.Printf("Record %s updated successfully on zone %s.\n", args.Record, args.ZoneName)
+      fmt.Printf("Record %s deleted successfully from zone %s.\n", args.Record, args.ZoneName)
       os.Exit(0)
     }
 	} else {

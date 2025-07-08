@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+
 	"yaca/models"
 
 	"github.com/cloudflare/cloudflare-go/v4"
@@ -74,24 +75,26 @@ func DoesRecordExistOnZone(zoneID, recordName string) (string, error) {
 }
 
 func CreateRecordOnZone(zoneID string, record models.Record) (bool, error) {
-	return upsertRecord(context.TODO(), zoneID, "", record, true)
+	return handleRecord(context.TODO(), zoneID, "", record, "Creating")
 }
 
 func UpdateRecordOnZone(zoneID, recordID string, record models.Record) (bool, error) {
-	return upsertRecord(context.TODO(), zoneID, recordID, record, false)
+	return handleRecord(context.TODO(), zoneID, recordID, record, "Updating")
 }
 
-func upsertRecord(ctx context.Context, zoneID, recordID string, record models.Record, create bool) (bool, error) {
-	operation := "Updating"
-	if create {
-		operation = "Creating"
-	}
+func DeleteRecordOnZone(zoneID, recordID string, record models.Record) (bool, error) {
+	return handleRecord(context.TODO(), zoneID, recordID, record, "Deleting")
+}
+
+func handleRecord(ctx context.Context, zoneID, recordID string, record models.Record, operation string) (bool, error) {
 	fmt.Printf("%s record '%s' on zone '%s' of type %s\n", operation, record.Record, zoneID, record.Type)
 
 	client := GetSingletonClient()
 
 	var err error
-	if create {
+
+	switch operation {
+	case "Creating":
 		body := dns.RecordNewParamsBody{
 			Name:    cloudflare.F(record.Record),
 			Content: cloudflare.F(record.Target),
@@ -110,7 +113,7 @@ func upsertRecord(ctx context.Context, zoneID, recordID string, record models.Re
 			ZoneID: cloudflare.F(zoneID),
 			Body:   body,
 		})
-	} else {
+	case "Updating":
 		body := dns.RecordEditParamsBody{
 			Name:    cloudflare.F(record.Record),
 			Content: cloudflare.F(record.Target),
@@ -129,10 +132,20 @@ func upsertRecord(ctx context.Context, zoneID, recordID string, record models.Re
 			ZoneID: cloudflare.F(zoneID),
 			Body:   body,
 		})
+	case "Deleting":
+		_, err = client.DNS.Records.Delete(ctx, recordID, dns.RecordDeleteParams{
+			ZoneID: cloudflare.F(zoneID),
+		})
+	default:
+		return false, fmt.Errorf("unsupported operation: %s", operation)
 	}
 
 	if err != nil {
-		return false, fmt.Errorf("failed to %s DNS record: %w", map[bool]string{true: "create", false: "update"}[create], err)
+		return false, fmt.Errorf("failed to %s DNS record: %w", map[string]string{
+			"Creating": "create", 
+			"Updating": "update", 
+			"Deleting": "delete",
+		}[operation], err)
 	}
 
 	return true, nil
