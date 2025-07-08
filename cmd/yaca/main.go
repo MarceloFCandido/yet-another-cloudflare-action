@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"yaca/client"
 	"yaca/models"
 	"yaca/pkg/utils"
@@ -38,6 +39,7 @@ func main() {
 
     if success {
       fmt.Printf("Record %s updated successfully on zone %s.\n", args.Record, args.ZoneName)
+      os.Exit(0)
     }
 	} else {
 		fmt.Printf("Record %s does not exist on zone %s.\n", args.Record, args.ZoneName)
@@ -47,6 +49,9 @@ func main() {
 
     if success {
       fmt.Printf("Record %s created successfully on zone %s.\n", args.Record, args.ZoneName)
+      os.Exit(0)
     }
 	}
+
+  os.Exit(1)
 }
