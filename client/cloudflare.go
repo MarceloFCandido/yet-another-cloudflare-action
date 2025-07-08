@@ -75,19 +75,30 @@ func DoesRecordExistOnZone(zoneID, recordName string) (string, error) {
 }
 
 func CreateRecordOnZone(zoneID string, record models.Record) (bool, error) {
-	return handleRecord(context.TODO(), zoneID, "", record, "Creating")
+	return handleRecord(context.TODO(), models.RecordData{
+		ZoneID: zoneID,
+		Record: record,
+	}, "Creating")
 }
 
 func UpdateRecordOnZone(zoneID, recordID string, record models.Record) (bool, error) {
-	return handleRecord(context.TODO(), zoneID, recordID, record, "Updating")
+	return handleRecord(context.TODO(), models.RecordData{
+		ZoneID:   zoneID,
+		RecordID: recordID,
+		Record:   record,
+	}, "Updating")
 }
 
 func DeleteRecordOnZone(zoneID, recordID string, record models.Record) (bool, error) {
-	return handleRecord(context.TODO(), zoneID, recordID, record, "Deleting")
+	return handleRecord(context.TODO(), models.RecordData{
+		ZoneID:   zoneID,
+		RecordID: recordID,
+		Record:   record,
+	}, "Deleting")
 }
 
-func handleRecord(ctx context.Context, zoneID, recordID string, record models.Record, operation string) (bool, error) {
-	fmt.Printf("%s record '%s' on zone '%s' of type %s\n", operation, record.Record, zoneID, record.Type)
+func handleRecord(ctx context.Context, recordData models.RecordData, operation string) (bool, error) {
+	fmt.Printf("%s record '%s' on zone '%s' of type %s\n", operation, recordData.Record.Record, recordData.ZoneID, recordData.Record.Type)
 
 	client := GetSingletonClient()
 
@@ -96,45 +107,45 @@ func handleRecord(ctx context.Context, zoneID, recordID string, record models.Re
 	switch operation {
 	case "Creating":
 		body := dns.RecordNewParamsBody{
-			Name:    cloudflare.F(record.Record),
-			Content: cloudflare.F(record.Target),
-			Proxied: cloudflare.F(record.Proxy),
-			TTL:     cloudflare.F(dns.TTL(record.Ttl)),
+			Name:    cloudflare.F(recordData.Record.Record),
+			Content: cloudflare.F(recordData.Record.Target),
+			Proxied: cloudflare.F(recordData.Record.Proxy),
+			TTL:     cloudflare.F(dns.TTL(recordData.Record.Ttl)),
 		}
-		switch record.Type {
+		switch recordData.Record.Type {
 		case "A":
 			body.Type = cloudflare.F(dns.RecordNewParamsBodyTypeA)
 		case "CNAME":
 			body.Type = cloudflare.F(dns.RecordNewParamsBodyTypeCNAME)
 		default:
-			return false, fmt.Errorf("unsupported record type: %s", record.Type)
+			return false, fmt.Errorf("unsupported record type: %s", recordData.Record.Type)
 		}
 		_, err = client.DNS.Records.New(ctx, dns.RecordNewParams{
-			ZoneID: cloudflare.F(zoneID),
+			ZoneID: cloudflare.F(recordData.ZoneID),
 			Body:   body,
 		})
 	case "Updating":
 		body := dns.RecordEditParamsBody{
-			Name:    cloudflare.F(record.Record),
-			Content: cloudflare.F(record.Target),
-			Proxied: cloudflare.F(record.Proxy),
-			TTL:     cloudflare.F(dns.TTL(record.Ttl)),
+			Name:    cloudflare.F(recordData.Record.Record),
+			Content: cloudflare.F(recordData.Record.Target),
+			Proxied: cloudflare.F(recordData.Record.Proxy),
+			TTL:     cloudflare.F(dns.TTL(recordData.Record.Ttl)),
 		}
-		switch record.Type {
+		switch recordData.Record.Type {
 		case "A":
 			body.Type = cloudflare.F(dns.RecordEditParamsBodyTypeA)
 		case "CNAME":
 			body.Type = cloudflare.F(dns.RecordEditParamsBodyTypeCNAME)
 		default:
-			return false, fmt.Errorf("unsupported record type: %s", record.Type)
+			return false, fmt.Errorf("unsupported record type: %s", recordData.Record.Type)
 		}
-		_, err = client.DNS.Records.Edit(ctx, recordID, dns.RecordEditParams{
-			ZoneID: cloudflare.F(zoneID),
+		_, err = client.DNS.Records.Edit(ctx, recordData.RecordID, dns.RecordEditParams{
+			ZoneID: cloudflare.F(recordData.ZoneID),
 			Body:   body,
 		})
 	case "Deleting":
-		_, err = client.DNS.Records.Delete(ctx, recordID, dns.RecordDeleteParams{
-			ZoneID: cloudflare.F(zoneID),
+		_, err = client.DNS.Records.Delete(ctx, recordData.RecordID, dns.RecordDeleteParams{
+			ZoneID: cloudflare.F(recordData.ZoneID),
 		})
 	default:
 		return false, fmt.Errorf("unsupported operation: %s", operation)
@@ -142,8 +153,8 @@ func handleRecord(ctx context.Context, zoneID, recordID string, record models.Re
 
 	if err != nil {
 		return false, fmt.Errorf("failed to %s DNS record: %w", map[string]string{
-			"Creating": "create", 
-			"Updating": "update", 
+			"Creating": "create",
+			"Updating": "update",
 			"Deleting": "delete",
 		}[operation], err)
 	}

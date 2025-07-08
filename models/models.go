@@ -17,3 +17,9 @@ type Record struct {
 	Ttl    float64 `json:"ttl"`
 	Type   string  `json:"type"`
 }
+
+type RecordData struct {
+	ZoneID   string
+	RecordID string
+	Record   Record
+}
