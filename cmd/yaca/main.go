@@ -9,20 +9,33 @@ import (
 	"yaca/pkg/utils"
 )
 
+var (
+	utilsLoadEnv          = utils.LoadEnv
+	utilsParseArgs        = utils.ParseArgs
+	utilsValidateArgs     = utils.ValidateArgs
+	utilsPanicOnError     = utils.PanicOnError
+	clientGetZoneIDByName = client.GetZoneIDByName
+	clientDoesRecordExistOnZone = client.DoesRecordExistOnZone
+	clientUpdateRecordOnZone = client.UpdateRecordOnZone
+	clientCreateRecordOnZone = client.CreateRecordOnZone
+	clientDeleteRecordOnZone = client.DeleteRecordOnZone
+	osExit = os.Exit
+)
+
 func main() {
-	utils.LoadEnv()
+	utilsLoadEnv()
 
-	args := utils.ParseArgs()
-  err := utils.ValidateArgs(&args)
-  utils.PanicOnError(err)
+	args := utilsParseArgs()
+  err := utilsValidateArgs(&args)
+  utilsPanicOnError(err)
 
-	zoneID, err := client.GetZoneIDByName(args.ZoneName)
-	utils.PanicOnError(err)
+	zoneID, err := clientGetZoneIDByName(args.ZoneName)
+	utilsPanicOnError(err)
 
 	fmt.Printf("Zone ID: %+v\n", zoneID)
 
-	recordID, err := client.DoesRecordExistOnZone(zoneID, args.Record)
-	utils.PanicOnError(err)
+	recordID, err := clientDoesRecordExistOnZone(zoneID, args.Record)
+	utilsPanicOnError(err)
 
   record := models.Record{
     Record: args.Record,
@@ -36,33 +49,35 @@ func main() {
 		fmt.Printf("Record %s exists on zone %s.\n", args.Record, args.ZoneName)
 
     if !args.Delete {
-      success, err := client.UpdateRecordOnZone(zoneID, recordID, record)
-      utils.PanicOnError(err)
+      success, err := clientUpdateRecordOnZone(zoneID, recordID, record)
+      utilsPanicOnError(err)
 
       if success {
         fmt.Printf("Record %s updated successfully on zone %s.\n", args.Record, args.ZoneName)
-        os.Exit(0)
+        osExit(0)
       }
-    }
+    } else {
+      success, err := clientDeleteRecordOnZone(zoneID, recordID, record)
+      utilsPanicOnError(err)
 
-    success, err := client.DeleteRecordOnZone(zoneID, recordID, record)
-    utils.PanicOnError(err)
-
-    if success {
-      fmt.Printf("Record %s deleted successfully from zone %s.\n", args.Record, args.ZoneName)
-      os.Exit(0)
+      if success {
+        fmt.Printf("Record %s deleted successfully from zone %s.\n", args.Record, args.ZoneName)
+        osExit(0)
+      }
     }
 	} else {
 		fmt.Printf("Record %s does not exist on zone %s.\n", args.Record, args.ZoneName)
 
-		success, err := client.CreateRecordOnZone(zoneID, record)
-    utils.PanicOnError(err)
+		success, err := clientCreateRecordOnZone(zoneID, record)
+    utilsPanicOnError(err)
 
     if success {
       fmt.Printf("Record %s created successfully on zone %s.\n", args.Record, args.ZoneName)
-      os.Exit(0)
+      osExit(0)
     }
 	}
 
-  os.Exit(1)
+  if os.Getenv("GO_TESTING") != "true" {
+    osExit(1)
+  }
 }

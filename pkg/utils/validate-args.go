@@ -6,7 +6,9 @@ import (
 	"yaca/models"
 )
 
-func ValidateArgs(args *models.Args) error {
+var ValidateArgs = validateArgs
+
+func validateArgs(args *models.Args) error {
 	if args.Record == "" {
 		return fmt.Errorf("record is required")
 	}

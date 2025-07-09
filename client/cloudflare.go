@@ -17,7 +17,9 @@ import (
 var once sync.Once
 var client *cloudflare.Client
 
-func GetSingletonClient() *cloudflare.Client {
+var GetSingletonClient = getSingletonClient
+
+func getSingletonClient() *cloudflare.Client {
 	if client == nil {
 		once.Do(func() {
 			fmt.Println("Initializing singleton Cloudflare client...")
@@ -34,7 +36,9 @@ func GetSingletonClient() *cloudflare.Client {
 	return client
 }
 
-func GetZoneIDByName(zoneName string) (string, error) {
+var GetZoneIDByName = getZoneIDByName
+
+func getZoneIDByName(zoneName string) (string, error) {
 	fmt.Printf("Retrieving zone ID for zone name: %s\n", zoneName)
 
 	client := GetSingletonClient()
@@ -53,7 +57,9 @@ func GetZoneIDByName(zoneName string) (string, error) {
 	return page.Result[0].ID, nil
 }
 
-func DoesRecordExistOnZone(zoneID, recordName string) (string, error) {
+var DoesRecordExistOnZone = doesRecordExistOnZone
+
+func doesRecordExistOnZone(zoneID, recordName string) (string, error) {
 	fmt.Printf("Checking if record '%s' exists on zone '%s'\n", recordName, zoneID)
 
 	client := GetSingletonClient()
@@ -74,14 +80,18 @@ func DoesRecordExistOnZone(zoneID, recordName string) (string, error) {
 	return "", nil
 }
 
-func CreateRecordOnZone(zoneID string, record models.Record) (bool, error) {
+var CreateRecordOnZone = createRecordOnZone
+
+func createRecordOnZone(zoneID string, record models.Record) (bool, error) {
 	return handleRecord(context.TODO(), models.RecordData{
 		ZoneID: zoneID,
 		Record: record,
 	}, "Creating")
 }
 
-func UpdateRecordOnZone(zoneID, recordID string, record models.Record) (bool, error) {
+var UpdateRecordOnZone = updateRecordOnZone
+
+func updateRecordOnZone(zoneID, recordID string, record models.Record) (bool, error) {
 	return handleRecord(context.TODO(), models.RecordData{
 		ZoneID:   zoneID,
 		RecordID: recordID,
@@ -89,7 +99,9 @@ func UpdateRecordOnZone(zoneID, recordID string, record models.Record) (bool, er
 	}, "Updating")
 }
 
-func DeleteRecordOnZone(zoneID, recordID string, record models.Record) (bool, error) {
+var DeleteRecordOnZone = deleteRecordOnZone
+
+func deleteRecordOnZone(zoneID, recordID string, record models.Record) (bool, error) {
 	return handleRecord(context.TODO(), models.RecordData{
 		ZoneID:   zoneID,
 		RecordID: recordID,
@@ -97,7 +109,9 @@ func DeleteRecordOnZone(zoneID, recordID string, record models.Record) (bool, er
 	}, "Deleting")
 }
 
-func handleRecord(ctx context.Context, recordData models.RecordData, operation string) (bool, error) {
+var handleRecord = handleRecordImpl
+
+func handleRecordImpl(ctx context.Context, recordData models.RecordData, operation string) (bool, error) {
 	fmt.Printf("%s record '%s' on zone '%s' of type %s\n", operation, recordData.Record.Record, recordData.ZoneID, recordData.Record.Type)
 
 	client := GetSingletonClient()
