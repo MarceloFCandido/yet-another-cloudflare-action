@@ -28,7 +28,7 @@ name: Yet Another Cloudflare Action
 outputs: {}
 runs:
   using: docker
-  image: ghcr.io/marcelofcandido/yet-another-cloudflare-action:latest
+  image: docker://ghcr.io/marcelofcandido/yet-another-cloudflare-action:latest
   env:
     INPUT_RECORD: ${{ inputs.record }}
     INPUT_ZONE_NAME: ${{ inputs.zone-name }}
