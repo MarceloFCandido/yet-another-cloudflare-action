@@ -27,14 +27,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
 
+      - name: Convert repository name to lowercase
+        id: string
+        run: echo "repository_lowercase=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ steps.string.outputs.repository_lowercase }}:latest
+            ghcr.io/${{ steps.string.outputs.repository_lowercase }}:${{ github.sha }}
 
 name: Build and Push Docker Image
 
