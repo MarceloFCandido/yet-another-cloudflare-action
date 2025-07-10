@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Construct the base command
-CMD="./yaca"
+CMD="/app/yaca"
 
 # Add arguments based on environment variables
 if [ -n "$INPUT_RECORD" ]; then
