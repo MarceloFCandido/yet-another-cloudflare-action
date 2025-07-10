@@ -25,9 +25,13 @@ WORKDIR /app
 COPY --from=builder /app/bin/yaca .
 COPY --from=builder /app/entrypoint.sh .
 
+RUN chmod +x ./entrypoint.sh
+
 # Use a non-root user for security
 RUN adduser -D appuser
 USER appuser
+
+ENV ENVIRONMENT=production
 
 # Run the binary
 ENTRYPOINT ["./entrypoint.sh"]

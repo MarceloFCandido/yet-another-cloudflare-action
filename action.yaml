@@ -3,7 +3,7 @@ inputs:
   delete:
     default: "false"
     description: Whether to delete the record name
-    required: false
+    required: true
   proxy:
     default: "false"
     description: Whether to enable Cloudflare proxy for the record name
@@ -27,13 +27,13 @@ inputs:
 name: Yet Another Cloudflare Action
 outputs: {}
 runs:
-  args:
-    - ${{ inputs.record }}
-    - ${{ inputs.zone-name }}
-    - ${{ inputs.delete }}
-    - ${{ inputs.target }}
-    - ${{ inputs.type }}
-    - ${{ inputs.proxy }}
-    - ${{ inputs.ttl }}
-  image: Dockerfile
   using: docker
+  image: Dockerfile
+  env:
+    INPUT_RECORD: ${{ inputs.record }}
+    INPUT_ZONE_NAME: ${{ inputs.zone-name }}
+    INPUT_DELETE: ${{ inputs.delete }}
+    INPUT_TYPE: ${{ inputs.type }}
+    INPUT_TARGET: ${{ inputs.target }}
+    INPUT_PROXY: ${{ inputs.proxy }}
+    INPUT_TTL: ${{ inputs.ttl }}
