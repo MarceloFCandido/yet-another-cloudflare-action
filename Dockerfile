@@ -34,4 +34,5 @@ USER appuser
 ENV ENVIRONMENT=production
 
 # Run the binary
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+
