@@ -17,7 +17,7 @@ jobs:
           target: www.bing.com
           ttl: 300
           type: CNAME
-          zone-name: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
+          zone_name: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
       - env:
           CLOUDFLARE_API_EMAIL: ${{ secrets.CLOUDFLARE_API_EMAIL }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -30,7 +30,7 @@ jobs:
           target: www.google.com
           ttl: 300
           type: CNAME
-          zone-name: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
+          zone_name: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
       - env:
           CLOUDFLARE_API_EMAIL: ${{ secrets.CLOUDFLARE_API_EMAIL }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -40,7 +40,7 @@ jobs:
         with:
           delete: true
           record: ${{ secrets.TEST_RECORD_NAME }}
-          zone-name: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
+          zone_name: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
 
 name: Test Deployed Action
 

@@ -24,8 +24,8 @@ if [ -n "$INPUT_TARGET" ]; then
   CMD="$CMD -t $INPUT_TARGET"
 fi
 
-if [ -n "$INPUT_PROXY" ]; then
-  CMD="$CMD -p $INPUT_PROXY"
+if [ "$INPUT_PROXY" = "true" ]; then
+  CMD="$CMD -p"
 fi
 
 if [ -n "$INPUT_TTL" ]; then

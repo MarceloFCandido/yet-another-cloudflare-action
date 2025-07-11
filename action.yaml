@@ -21,7 +21,7 @@ inputs:
   type:
     description: Type of the record name to be created/updated
     required: false
-  zone-name:
+  zone_name:
     description: Zone name of the record name
     required: true
 name: Yet Another Cloudflare Action
@@ -31,7 +31,7 @@ runs:
   image: docker://ghcr.io/marcelofcandido/yet-another-cloudflare-action:latest
   env:
     INPUT_RECORD: ${{ inputs.record }}
-    INPUT_ZONE_NAME: ${{ inputs.zone-name }}
+    INPUT_ZONE_NAME: ${{ inputs.zone_name }}
     INPUT_DELETE: ${{ inputs.delete }}
     INPUT_TYPE: ${{ inputs.type }}
     INPUT_TARGET: ${{ inputs.target }}
