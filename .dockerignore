@@ -55,3 +55,20 @@ Dockerfile*
 # Git
 .git/
 .gitignore
+.github/
+
+# Documentation
+README.md
+GEMINI.md
+*.md
+
+# Go test files
+*_test.go
+
+# Build cache
+.cache/
+vendor/
+
+# Temporary files
+tmp/
+temp/
