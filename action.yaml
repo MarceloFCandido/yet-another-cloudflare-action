@@ -5,7 +5,6 @@ inputs:
     description: Whether to delete the record name
     required: true
   proxy:
-    default: "false"
     description: Whether to enable Cloudflare proxy for the record name
     required: false
   record:
@@ -15,7 +14,6 @@ inputs:
     description: Target/IP address the record name should point to
     required: false
   ttl:
-    default: "3600"
     description: Time-to-live for the record name
     required: false
   type:
