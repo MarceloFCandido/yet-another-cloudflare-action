@@ -1,0 +1,21 @@
+jobs:
+  cleanup:
+    name: Delete Untagged Container Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old untagged images
+        uses: actions/delete-package-versions@v5
+        with:
+          ignore-versions: '^(v\\d+\\.\\d+\\.\\d+)$'
+          min-versions-to-keep: 0
+          owner: 'MarceloFCandido'
+          package-name: 'yet-another-cloudflare-action'
+          package-type: 'container'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+name: Cleanup GHCR Images
+
+on:
+  schedule:
+    - cron: '0 2 * * 0' # Runs every Sunday at 2 AM UTC
+  workflow_dispatch:
