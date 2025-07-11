@@ -1,11 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
 
 	"yaca/client"
 	"yaca/models"
+	"yaca/pkg/config"
+	"yaca/pkg/logger"
 	"yaca/pkg/utils"
 )
 
@@ -13,7 +15,7 @@ var (
 	utilsLoadEnv                = utils.LoadEnv
 	utilsParseArgs              = utils.ParseArgs
 	utilsValidateArgs           = utils.ValidateArgs
-	utilsPanicOnError           = utils.PanicOnError
+	utilsHandleError            = utils.HandleError
 	clientGetZoneIDByName       = client.GetZoneIDByName
 	clientDoesRecordExistOnZone = client.DoesRecordExistOnZone
 	clientUpdateRecordOnZone    = client.UpdateRecordOnZone
@@ -22,19 +24,44 @@ var (
 )
 
 func run() int {
-	utilsLoadEnv()
+	// Initialize configuration
+	config.Load()
+	
+	// Initialize logger
+	logger.Init()
+	logger.Info("Starting Yet Another Cloudflare Action",
+		slog.String("environment", config.AppConfig.Environment),
+		slog.String("log_level", config.AppConfig.LogLevel))
+	
+	// Try to load .env file, but don't fail if it doesn't exist
+	if err := utilsLoadEnv(); err != nil {
+		// Only log as debug since .env is optional in production
+		logger.Debug("Could not load .env file",
+			slog.String("error", err.Error()))
+	}
 
 	args := utilsParseArgs()
 	err := utilsValidateArgs(&args)
-	utilsPanicOnError(err)
+	utilsHandleError(err, "Failed to validate arguments")
+
+	logger.Debug("Arguments validated",
+		slog.String("record_name", args.Record),
+		slog.String("zone_name", args.ZoneName),
+		slog.Bool("delete", args.Delete),
+		slog.String("type", args.Type))
 
 	zoneID, err := clientGetZoneIDByName(args.ZoneName)
-	utilsPanicOnError(err)
+	utilsHandleError(err, "Failed to get zone ID",
+		slog.String("zone_name", args.ZoneName))
 
-	fmt.Printf("Zone ID: %+v\n", zoneID)
+	logger.Info("Zone retrieved",
+		slog.String("zone_id", zoneID), // Will be masked automatically
+		slog.String("zone_name", args.ZoneName))
 
 	recordID, err := clientDoesRecordExistOnZone(zoneID, args.Record)
-	utilsPanicOnError(err)
+	utilsHandleError(err, "Failed to check record existence",
+		slog.String("zone_id", zoneID),
+		slog.String("record_name", args.Record))
 
 	record := models.Record{
 		Record: args.Record,
@@ -45,37 +72,64 @@ func run() int {
 	}
 
 	if recordID != "" {
-		fmt.Printf("Record %s exists on zone %s.\n", args.Record, args.ZoneName)
+		logger.Info("Record exists",
+			slog.String("record_name", args.Record),
+			slog.String("zone_name", args.ZoneName),
+			slog.String("record_id", recordID)) // Will be masked
 
 		if !args.Delete {
 			success, err := clientUpdateRecordOnZone(zoneID, recordID, record)
-			utilsPanicOnError(err)
+			utilsHandleError(err, "Failed to update record",
+				slog.String("zone_id", zoneID),
+				slog.String("record_id", recordID))
 
 			if success {
-				fmt.Printf("Record %s updated successfully on zone %s.\n", args.Record, args.ZoneName)
+				logger.Info("Record updated successfully",
+					slog.String("record_name", args.Record),
+					slog.String("zone_name", args.ZoneName),
+					slog.String("operation", "update"))
 				return 0
 			}
 		} else {
 			success, err := clientDeleteRecordOnZone(zoneID, recordID, record)
-			utilsPanicOnError(err)
+			utilsHandleError(err, "Failed to delete record",
+				slog.String("zone_id", zoneID),
+				slog.String("record_id", recordID))
 
 			if success {
-				fmt.Printf("Record %s deleted successfully from zone %s.\n", args.Record, args.ZoneName)
+				logger.Info("Record deleted successfully",
+					slog.String("record_name", args.Record),
+					slog.String("zone_name", args.ZoneName),
+					slog.String("operation", "delete"))
 				return 0
 			}
 		}
 	} else {
-		fmt.Printf("Record %s does not exist on zone %s.\n", args.Record, args.ZoneName)
+		logger.Info("Record does not exist",
+			slog.String("record_name", args.Record),
+			slog.String("zone_name", args.ZoneName))
+
+		if args.Delete {
+			logger.Warn("Cannot delete non-existent record",
+				slog.String("record_name", args.Record),
+				slog.String("zone_name", args.ZoneName))
+			return 1
+		}
 
 		success, err := clientCreateRecordOnZone(zoneID, record)
-		utilsPanicOnError(err)
+		utilsHandleError(err, "Failed to create record",
+			slog.String("zone_id", zoneID))
 
 		if success {
-			fmt.Printf("Record %s created successfully on zone %s.\n", args.Record, args.ZoneName)
+			logger.Info("Record created successfully",
+				slog.String("record_name", args.Record),
+				slog.String("zone_name", args.ZoneName),
+				slog.String("operation", "create"))
 			return 0
 		}
 	}
 
+	logger.Error("Operation failed unexpectedly")
 	return 1
 }
 

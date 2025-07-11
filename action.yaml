@@ -4,6 +4,10 @@ inputs:
     default: "false"
     description: Whether to delete the record name
     required: true
+  log_level:
+    description: Log level (DEBUG, INFO, WARN, ERROR)
+    required: false
+    default: "INFO"
   proxy:
     description: Whether to enable Cloudflare proxy for the record name
     required: false
@@ -35,3 +39,5 @@ runs:
     INPUT_TARGET: ${{ inputs.target }}
     INPUT_PROXY: ${{ inputs.proxy }}
     INPUT_TTL: ${{ inputs.ttl }}
+    LOG_LEVEL: ${{ inputs.log_level }}
+    ENVIRONMENT: "production"

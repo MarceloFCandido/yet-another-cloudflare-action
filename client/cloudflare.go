@@ -3,10 +3,12 @@ package client
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"sync"
 
 	"yaca/models"
+	"yaca/pkg/logger"
 
 	"github.com/cloudflare/cloudflare-go/v4"
 	"github.com/cloudflare/cloudflare-go/v4/dns"
@@ -22,15 +24,23 @@ var GetSingletonClient = getSingletonClient
 func getSingletonClient() *cloudflare.Client {
 	if client == nil {
 		once.Do(func() {
-			fmt.Println("Initializing singleton Cloudflare client...")
+			logger.Debug("Initializing singleton Cloudflare client")
+
+			apiEmail := os.Getenv("CLOUDFLARE_API_EMAIL")
+			apiToken := os.Getenv("CLOUDFLARE_API_TOKEN")
+			
+			// Log that we're using credentials without exposing them
+			logger.Debug("Creating Cloudflare client",
+				slog.Bool("has_email", apiEmail != ""),
+				slog.Bool("has_token", apiToken != ""))
 
 			client = cloudflare.NewClient(
-				option.WithAPIEmail(os.Getenv("CLOUDFLARE_API_EMAIL")),
-				option.WithAPIToken(os.Getenv("CLOUDFLARE_API_TOKEN")),
+				option.WithAPIEmail(apiEmail),
+				option.WithAPIToken(apiToken),
 			)
 		})
 	} else {
-		fmt.Println("Using existing Cloudflare client instance.")
+		logger.Debug("Using existing Cloudflare client instance")
 	}
 
 	return client
@@ -39,7 +49,8 @@ func getSingletonClient() *cloudflare.Client {
 var GetZoneIDByName = getZoneIDByName
 
 func getZoneIDByName(zoneName string) (string, error) {
-	fmt.Printf("Retrieving zone ID for zone name: %s\n", zoneName)
+	logger.Debug("Retrieving zone ID",
+		slog.String("zone_name", zoneName))
 
 	client := GetSingletonClient()
 
@@ -47,20 +58,32 @@ func getZoneIDByName(zoneName string) (string, error) {
 		Name: cloudflare.F(zoneName),
 	})
 	if err != nil {
+		logger.Error("Failed to list zones",
+			slog.String("zone_name", zoneName),
+			slog.String("error", err.Error()))
 		return "", fmt.Errorf("failed to list zones: %w", err)
 	}
 
 	if len(page.Result) == 0 {
+		logger.Warn("No zone found",
+			slog.String("zone_name", zoneName))
 		return "", fmt.Errorf("no zone found with name: %s", zoneName)
 	}
 
-	return page.Result[0].ID, nil
+	zoneID := page.Result[0].ID
+	logger.Debug("Zone ID retrieved",
+		slog.String("zone_id", zoneID), // Will be masked
+		slog.String("zone_name", zoneName))
+
+	return zoneID, nil
 }
 
 var DoesRecordExistOnZone = doesRecordExistOnZone
 
 func doesRecordExistOnZone(zoneID, recordName string) (string, error) {
-	fmt.Printf("Checking if record '%s' exists on zone '%s'\n", recordName, zoneID)
+	logger.Debug("Checking record existence",
+		slog.String("zone_id", zoneID), // Will be masked
+		slog.String("record_name", recordName))
 
 	client := GetSingletonClient()
 
@@ -68,15 +91,23 @@ func doesRecordExistOnZone(zoneID, recordName string) (string, error) {
 		ZoneID: cloudflare.F(zoneID),
 	})
 	if err != nil {
+		logger.Error("Failed to list DNS records",
+			slog.String("zone_id", zoneID),
+			slog.String("error", err.Error()))
 		return "", fmt.Errorf("failed to list DNS records: %w", err)
 	}
 
 	for _, record := range page.Result {
 		if record.Name == recordName {
+			logger.Debug("Record found",
+				slog.String("record_id", record.ID), // Will be masked
+				slog.String("record_name", recordName))
 			return record.ID, nil
 		}
 	}
 
+	logger.Debug("Record not found",
+		slog.String("record_name", recordName))
 	return "", nil
 }
 
@@ -112,10 +143,23 @@ func deleteRecordOnZone(zoneID, recordID string, record models.Record) (bool, er
 var handleRecord = handleRecordImpl
 
 func handleRecordImpl(ctx context.Context, recordData models.RecordData, operation string) (bool, error) {
-	fmt.Printf("%s record '%s' on zone '%s' of type %s\n", operation, recordData.Record.Record, recordData.ZoneID, recordData.Record.Type)
+	// Log operation with appropriate details
+	logger.Info("DNS operation started",
+		slog.String("operation", operation),
+		slog.String("record_name", recordData.Record.Record),
+		slog.String("record_type", recordData.Record.Type),
+		slog.String("zone_id", recordData.ZoneID), // Will be masked
+		slog.Bool("proxied", recordData.Record.Proxy),
+		slog.Float64("ttl", recordData.Record.Ttl))
+	
+	// Log target only for non-delete operations and mask if it's an IP
+	if operation != "Deleting" && recordData.Record.Target != "" {
+		logger.Debug("Record target",
+			slog.String("target_ip", recordData.Record.Target),
+			slog.String("operation", operation))
+	}
 
 	client := GetSingletonClient()
-
 	var err error
 
 	switch operation {
@@ -132,6 +176,8 @@ func handleRecordImpl(ctx context.Context, recordData models.RecordData, operati
 		case "CNAME":
 			body.Type = cloudflare.F(dns.RecordNewParamsBodyTypeCNAME)
 		default:
+			logger.Error("Unsupported record type",
+				slog.String("type", recordData.Record.Type))
 			return false, fmt.Errorf("unsupported record type: %s", recordData.Record.Type)
 		}
 		_, err = client.DNS.Records.New(ctx, dns.RecordNewParams{
@@ -151,6 +197,8 @@ func handleRecordImpl(ctx context.Context, recordData models.RecordData, operati
 		case "CNAME":
 			body.Type = cloudflare.F(dns.RecordEditParamsBodyTypeCNAME)
 		default:
+			logger.Error("Unsupported record type",
+				slog.String("type", recordData.Record.Type))
 			return false, fmt.Errorf("unsupported record type: %s", recordData.Record.Type)
 		}
 		_, err = client.DNS.Records.Edit(ctx, recordData.RecordID, dns.RecordEditParams{
@@ -162,16 +210,27 @@ func handleRecordImpl(ctx context.Context, recordData models.RecordData, operati
 			ZoneID: cloudflare.F(recordData.ZoneID),
 		})
 	default:
+		logger.Error("Unsupported operation",
+			slog.String("operation", operation))
 		return false, fmt.Errorf("unsupported operation: %s", operation)
 	}
 
 	if err != nil {
+		logger.Error("DNS operation failed",
+			slog.String("operation", operation),
+			slog.String("record_name", recordData.Record.Record),
+			slog.String("error", err.Error()))
 		return false, fmt.Errorf("failed to %s DNS record: %w", map[string]string{
 			"Creating": "create",
 			"Updating": "update",
 			"Deleting": "delete",
 		}[operation], err)
 	}
+
+	logger.Info("DNS operation completed successfully",
+		slog.String("operation", operation),
+		slog.String("record_name", recordData.Record.Record),
+		slog.String("record_type", recordData.Record.Type))
 
 	return true, nil
 }

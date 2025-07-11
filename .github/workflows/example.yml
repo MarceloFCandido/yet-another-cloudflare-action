@@ -1,0 +1,53 @@
+name: Example DNS Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - create
+          - update
+          - delete
+      record_name:
+        description: 'Record name (e.g., test.example.com)'
+        required: true
+      target:
+        description: 'Target IP or hostname (for create/update)'
+        required: false
+
+jobs:
+  manage-dns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create/Update DNS Record
+        if: ${{ github.event.inputs.action != 'delete' }}
+        uses: ./
+        env:
+          CLOUDFLARE_API_EMAIL: ${{ secrets.CLOUDFLARE_API_EMAIL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        with:
+          record: ${{ github.event.inputs.record_name }}
+          zone-name: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
+          target: ${{ github.event.inputs.target }}
+          type: CNAME
+          proxy: true
+          ttl: 300
+          log_level: INFO
+
+      - name: Delete DNS Record
+        if: ${{ github.event.inputs.action == 'delete' }}
+        uses: ./
+        env:
+          CLOUDFLARE_API_EMAIL: ${{ secrets.CLOUDFLARE_API_EMAIL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        with:
+          record: ${{ github.event.inputs.record_name }}
+          zone-name: ${{ secrets.CLOUDFLARE_ZONE_NAME }}
+          delete: true
+          log_level: INFO
