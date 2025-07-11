@@ -2,6 +2,8 @@ jobs:
   cleanup:
     name: Delete Untagged Container Images
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       - name: Delete old untagged images
         uses: actions/delete-package-versions@v5
