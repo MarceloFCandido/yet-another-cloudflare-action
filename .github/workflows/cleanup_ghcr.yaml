@@ -8,12 +8,11 @@ jobs:
       - name: Delete old untagged images
         uses: actions/delete-package-versions@v5
         with:
-          ignore-versions: '^(v\\d+\\.\\d+\\.\\d+)$'
-          min-versions-to-keep: 0
           owner: 'MarceloFCandido'
           package-name: 'yet-another-cloudflare-action'
           package-type: 'container'
           token: ${{ secrets.GITHUB_TOKEN }}
+          delete-only-untagged-versions: true
 
 name: Cleanup GHCR Images
 
