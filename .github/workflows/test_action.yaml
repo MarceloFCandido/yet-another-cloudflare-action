@@ -1,9 +1,9 @@
 jobs:
   test-action:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-latest
     permissions:
       packages: read
+    runs-on: ubuntu-latest
     steps:
       - env:
           CLOUDFLARE_API_EMAIL: ${{ secrets.CLOUDFLARE_API_EMAIL }}
@@ -45,6 +45,7 @@ jobs:
 name: Test Deployed Action
 
 on:
+  workflow_dispatch:
   workflow_run:
     branches:
       - v1
