@@ -10,7 +10,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         id: create_record
         name: Create DNS Record
-        uses: marcelofcandido/yet-another-cloudflare-action@master
+        uses: marcelofcandido/yet-another-cloudflare-action@v1
         with:
           proxy: true
           record: ${{ secrets.TEST_RECORD_NAME }}
@@ -23,7 +23,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         id: update_record
         name: Update DNS Record
-        uses: marcelofcandido/yet-another-cloudflare-action@master
+        uses: marcelofcandido/yet-another-cloudflare-action@v1
         with:
           proxy: true
           record: ${{ secrets.TEST_RECORD_NAME }}
@@ -36,7 +36,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         id: delete_record
         name: Delete DNS Record
-        uses: marcelofcandido/yet-another-cloudflare-action@master
+        uses: marcelofcandido/yet-another-cloudflare-action@v1
         with:
           delete: true
           record: ${{ secrets.TEST_RECORD_NAME }}
@@ -47,6 +47,6 @@ name: Test Deployed Action
 on:
   workflow_run:
     branches:
-      - master
+      - v1
     types: [completed]
     workflows: ["Build and Push Docker Image"]

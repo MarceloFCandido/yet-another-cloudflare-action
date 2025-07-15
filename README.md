@@ -134,10 +134,3 @@ Additional environment variables for advanced configuration:
 3. **Use minimal log levels** in production environments
 4. **Enable GitHub Actions masking** for any custom sensitive outputs
 
-## Contributing
-
-Contributions are welcome! Please ensure that any changes maintain the security features and follow the existing logging patterns.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
